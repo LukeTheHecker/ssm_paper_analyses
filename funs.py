@@ -17,7 +17,7 @@ def predict_sources_2(solver_dicts, fwd, info, x_sample, sim_info, n_sources=Non
 		n_sources = sim_info.n_sources
 
 	for solver_dict in solver_dicts:
-		solver_name = solver_dict["name"]
+		solver_name = solver_dict["display_name"]
 		make_args = solver_dict["make_args"]
 		apply_args = solver_dict["apply_args"]
 		recompute_make = solver_dict["recompute_make"]
@@ -26,7 +26,10 @@ def predict_sources_2(solver_dicts, fwd, info, x_sample, sim_info, n_sources=Non
 		evoked = mne.EvokedArray(x_sample.T, info, tmin=0)
 		if not solver.made_inverse_operator or recompute_make:
 			start_make = time()
-			solver.make_inverse_operator(fwd, evoked, alpha="auto", n=n_sources, k=n_sources, **make_args)
+			if "n" in make_args and "k" in make_args:
+				solver.make_inverse_operator(fwd, evoked, **make_args)
+			else:
+				solver.make_inverse_operator(fwd, evoked, n=n_sources, k=n_sources, **make_args)
 			end_make = time()
 		
 		start_apply = time()
@@ -41,11 +44,28 @@ def predict_sources_2(solver_dicts, fwd, info, x_sample, sim_info, n_sources=Non
 
 def predict_sources_parallel3(solver_dicts, fwd, info, x_test, sim_info, n_jobs=-1, n_sources=None):
     # prepare solvers
-	evoked = mne.EvokedArray(x_test[0].T, info, tmin=0)
+	if type(x_test) == list:
+		x_test_temp = x_test[0][0].T
+	else:
+		x_test_temp = x_test[0].T
+	
+	evoked = mne.EvokedArray(x_test_temp, info, tmin=0)
 	for solver_dict in solver_dicts:
-		solver_dict["solver"].make_inverse_operator(fwd, evoked, alpha="auto", n=2, k=2, **solver_dict["make_args"])
+		solver_dict["solver"].make_inverse_operator(fwd, evoked, **solver_dict["make_args"])
 
-	res = Parallel(n_jobs=n_jobs, backend="loky")(delayed(predict_sources_2)(solver_dicts, fwd, info, x_sample, sim_info_row, n_sources=n_sources) for x_sample, (_, sim_info_row) in zip(x_test, sim_info.iterrows()))
+	# This worked only if x_test is numpy.ndarray, not if its a list
+	# res = Parallel(n_jobs=n_jobs, backend="loky")(delayed(predict_sources_2)(solver_dicts, fwd, info, x_sample, sim_info_row, n_sources=n_sources) for x_sample, (_, sim_info_row) in zip(x_test, sim_info.iterrows()))
+
+	# Do this instead
+	if type(x_test) == list:
+		x_test_batch = []
+		for x1 in x_test:
+			for x2 in x1:
+				x_test_batch.append(x2)
+	else:
+		x_test_batch = x_test
+	
+	res = Parallel(n_jobs=n_jobs, backend="loky")(delayed(predict_sources_2)(solver_dicts, fwd, info, x_sample, sim_info_row, n_sources=n_sources) for x_sample, (_, sim_info_row) in zip(x_test_batch, sim_info.iterrows()))
 	return res
 
 def predict_sources(solver_dict, fwd, info, x_test, sim_info):

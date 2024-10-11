@@ -101,8 +101,3 @@ forward_models = [
 
 subject = "fsaverage"
 subjects_dir = r"C:\Users\lukas\mne_data\MNE-sample-data\subjects"
-meg_data_path = "C:/Users/lukas/mne_data/MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif"
-
-# subject = "sample"
-# subjects_dir = r"C:\Users\lukas\mne_data\MNE-sample-data\subjects"
-# meg_data_path = "C:/Users/lukas/mne_data/MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif""
