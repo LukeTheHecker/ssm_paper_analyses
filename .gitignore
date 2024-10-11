@@ -2,4 +2,7 @@
 *.pkl
 *.csv
 
+simulations/
+predictions/
+results/
 figures/
